@@ -1,0 +1,5 @@
+<router-outlet />
+<p-toast key="notification" />
+<ng-container *ngIf="loading$">
+    <div class="loader" *ngIf="loading$ | async"></div>
+  </ng-container>
