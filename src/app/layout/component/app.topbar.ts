@@ -5,11 +5,14 @@ import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
-
+import { ButtonModule } from 'primeng/button';
+import { SplitButtonModule } from 'primeng/splitbutton';
+import { NotificationService } from '../../core/services/notification/notification.service';
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, CommonModule, ButtonModule, SplitButtonModule],
+    providers: [NotificationService],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
             <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -33,7 +36,7 @@ import { LayoutService } from '../service/layout.service';
                         />
                     </g>
                 </svg>
-                <span>SAKAI</span>
+                <span>TASKMANAGER UI</span>
             </a>
         </div>
 
@@ -72,10 +75,16 @@ import { LayoutService } from '../service/layout.service';
                         <i class="pi pi-inbox"></i>
                         <span>Messages</span>
                     </button>
-                    <button type="button" class="layout-topbar-action">
+                    <!-- <button type="button" class="layout-topbar-action">
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
-                    </button>
+                    </button> -->
+                    <p-splitbutton [model]="splitItems" text severity="contrast">
+                        <ng-template #content>
+                            <i class="pi pi-user"></i>
+                            <span>TTLoc</span>
+                        </ng-template>    
+                    </p-splitbutton>
                 </div>
             </div>
         </div>
@@ -83,10 +92,26 @@ import { LayoutService } from '../service/layout.service';
 })
 export class AppTopbar {
     items!: MenuItem[];
-
-    constructor(public layoutService: LayoutService) {}
+    splitItems = [
+        {
+            label: 'Thông tin tài khoản',
+            icon: 'pi pi-info-circle'
+        },
+        {
+            label: 'Đăng xuẩt',
+            icon: 'pi pi-sign-out',
+            command: () => {
+                this.logout();
+            }
+        },
+    ];
+    constructor(public layoutService: LayoutService, private notiSV:NotificationService) {}
 
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+    }
+
+    logout(){
+        this.notiSV.notify("Đăng xuất")
     }
 }

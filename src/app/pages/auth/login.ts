@@ -1,17 +1,26 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { RippleModule } from 'primeng/ripple';
 import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
+import { LoginModel } from './models';
+import { ApiService } from '../../core/services/api/api.service';
+import { AuthService } from '../../core/services/auth/auth.service';
+import { NotificationService } from '../../core/services/notification/notification.service';
+import { BaseResponse } from '../../core/models/BaseResponse.model';
+import { MessageModule } from 'primeng/message';
+import { CommonModule } from '@angular/common';
+import { FluidModule } from 'primeng/fluid';
 
 @Component({
     selector: 'app-login',
     standalone: true,
-    imports: [ButtonModule, CheckboxModule, InputTextModule, PasswordModule, FormsModule, RouterModule, RippleModule, AppFloatingConfigurator],
+    imports: [ButtonModule, CheckboxModule, InputTextModule, PasswordModule, FormsModule, RouterModule, RippleModule, AppFloatingConfigurator, MessageModule, CommonModule,ReactiveFormsModule,FluidModule],
+    providers:[ApiService,NotificationService,AuthService],
     template: `
         <app-floating-configurator />
         <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
@@ -40,21 +49,30 @@ import { AppFloatingConfigurator } from '../../layout/component/app.floatingconf
                             <span class="text-muted-color font-medium">Sign in to continue</span>
                         </div>
 
-                        <div>
-                            <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
-                            <input pInputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem] mb-8" [(ngModel)]="email" />
-
-                            <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
-                            <p-password id="password1" [(ngModel)]="password" placeholder="Password" [toggleMask]="true" styleClass="mb-4" [fluid]="true" [feedback]="false"></p-password>
-
+                        <div class="flex flex-col gap-4" [formGroup]="formLogin">
+                            <div class="flex flex-col gap-1">
+                                <label for="username" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Tài khoản</label>
+                                <input
+                                    class="w-full"
+                                    [class]="formLogin.controls['userName'].hasError('required') && (formLogin.controls['userName'].dirty || formLogin.controls['userName'].touched) ? 'ng-invalid ng-dirty' : ''"
+                                    formControlName="userName" pInputText id="username" aria-describedby="username-help" />
+                                <p-message *ngIf="formLogin.controls['userName'].hasError('required') && (formLogin.controls['userName'].dirty || formLogin.controls['userName'].touched)" severity="error" variant="simple" size="small">Tài khoản không được bỏ trống.</p-message>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2" for="password">Mật khẩu</label>
+                                <p-password id="password" styleClass="w-full" inputStyleClass="w-full" formControlName="password" [toggleMask]="true"
+                                    [feedback]="false">
+                                </p-password>
+                                <p-message *ngIf="formLogin.controls['password'].hasError('required') && (formLogin.controls['password'].dirty || formLogin.controls['password'].touched)" severity="error" variant="simple" size="small">Mật khẩu không được bỏ trống.</p-message>
+                            </div>
                             <div class="flex items-center justify-between mt-2 mb-8 gap-8">
                                 <div class="flex items-center">
-                                    <p-checkbox [(ngModel)]="checked" id="rememberme1" binary class="mr-2"></p-checkbox>
-                                    <label for="rememberme1">Remember me</label>
+                                    <p-checkbox formArrayName="rememberme" id="rememberme" binary class="mr-2"></p-checkbox>
+                                    <label for="rememberme">Remember me</label>
                                 </div>
                                 <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
                             </div>
-                            <p-button label="Sign In" styleClass="w-full" routerLink="/"></p-button>
+                            <p-button label="Sign In" styleClass="w-full" (onClick)="onSignIn()"></p-button>
                         </div>
                     </div>
                 </div>
@@ -62,10 +80,50 @@ import { AppFloatingConfigurator } from '../../layout/component/app.floatingconf
         </div>
     `
 })
-export class Login {
-    email: string = '';
+export class Login implements OnInit {
+    formLogin!:FormGroup;
+    constructor(
+        private apiSV:ApiService,
+        private authSV:AuthService,
+        private notiSV:NotificationService,
+        private route:Router,
+        private changeDetectorRef:ChangeDetectorRef) 
+    {
+    }
+    ngOnInit(): void {
+        this.formLogin = new FormGroup({
+            userName : new FormControl("",Validators.required),
+            password : new FormControl("",Validators.required),
+            rememberme : new FormControl(false)
+          });
+    }
 
-    password: string = '';
-
-    checked: boolean = false;
+    onSignIn(){
+        debugger
+        let data = this.formLogin.value as LoginModel;
+        if(!data) return;
+        if(!data.userName)
+        {
+          this.notiSV.notify("Tài khoản không được bỏ trống!","warn");
+          return;
+        }
+        if(!data.password)
+        {
+          this.notiSV.notify("Mật khẩu không được bỏ trống!",'warn');
+          return;
+        }
+        this.route.navigateByUrl("");
+        // this.apiSV.post<BaseResponse>("auth/login",data)
+        // .subscribe((res) => {
+        //   if(res && !res.isError && res.data)
+        //   {
+        //     this.authSV.setToken(res.data);
+        //     this.route.navigateByUrl("dashboard");
+        //   }
+        //   else
+        //   {
+        //     this.notiSV.notify(res.messageError,res.errorType);
+        //   }
+        // });
+    }
 }
