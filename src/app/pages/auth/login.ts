@@ -11,10 +11,10 @@ import { LoginModel } from './models';
 import { ApiService } from '../../core/services/api/api.service';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
-import { BaseResponse } from '../../core/models/BaseResponse.model';
 import { MessageModule } from 'primeng/message';
 import { CommonModule } from '@angular/common';
 import { FluidModule } from 'primeng/fluid';
+import { take } from 'rxjs';
 
 @Component({
     selector: 'app-login',
@@ -67,7 +67,7 @@ import { FluidModule } from 'primeng/fluid';
                             </div>
                             <div class="flex items-center justify-between mt-2 mb-8 gap-8">
                                 <div class="flex items-center">
-                                    <p-checkbox formArrayName="rememberme" id="rememberme" binary class="mr-2"></p-checkbox>
+                                    <p-checkbox formControlName="rememberme" id="rememberme" binary class="mr-2"></p-checkbox>
                                     <label for="rememberme">Remember me</label>
                                 </div>
                                 <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
@@ -109,21 +109,16 @@ export class Login implements OnInit {
         }
         if(!data.password)
         {
-          this.notiSV.notify("Mật khẩu không được bỏ trống!",'warn');
+          this.notiSV.notify("Mật khẩu không được bỏ trống!","warn");
           return;
         }
-        this.route.navigateByUrl("");
-        // this.apiSV.post<BaseResponse>("auth/login",data)
-        // .subscribe((res) => {
-        //   if(res && !res.isError && res.data)
-        //   {
-        //     this.authSV.setToken(res.data);
-        //     this.route.navigateByUrl("dashboard");
-        //   }
-        //   else
-        //   {
-        //     this.notiSV.notify(res.messageError,res.errorType);
-        //   }
-        // });
+        this.authSV.login(data)
+        .pipe(take(1))
+        .subscribe((res) => {
+          if(res)
+          {
+            this.route.navigateByUrl("task");
+          }
+        });
     }
 }

@@ -5,11 +5,13 @@ import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { TaskComponent } from './app/pages/task/task.component';
+import { canActiveRouteGuard } from './app/core/guards/can-active-route.guard';
 
 export const appRoutes: Routes = [
     {
         path: '',
         component: AppLayout,
+        canActivate: [canActiveRouteGuard],
         children: [
             { path: '', component: Dashboard },
             { path: 'task', component: TaskComponent },
