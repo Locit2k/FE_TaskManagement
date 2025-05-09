@@ -45,10 +45,9 @@ import { take } from 'rxjs';
                                     />
                                 </g>
                             </svg>
-                            <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Welcome to PrimeLand!</div>
-                            <span class="text-muted-color font-medium">Sign in to continue</span>
+                            <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Task Manager</div>
+                            <span class="text-muted-color font-medium">Đăng nhập</span>
                         </div>
-
                         <div class="flex flex-col gap-4" [formGroup]="formLogin">
                             <div class="flex flex-col gap-1">
                                 <label for="username" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Tài khoản</label>
@@ -72,7 +71,8 @@ import { take } from 'rxjs';
                                 </div>
                                 <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
                             </div>
-                            <p-button label="Sign In" styleClass="w-full" (onClick)="onSignIn()"></p-button>
+                            <p-button label="Đăng nhập" styleClass="w-full" (onClick)="onSignIn()"></p-button>
+                            <p-button label="Đăng ký" class="text-center" [link]="true" (onClick)="router.navigateByUrl('auth/register')"/>
                         </div>
                     </div>
                 </div>
@@ -86,7 +86,7 @@ export class Login implements OnInit {
         private apiSV:ApiService,
         private authSV:AuthService,
         private notiSV:NotificationService,
-        private route:Router,
+        public router:Router,
         private changeDetectorRef:ChangeDetectorRef) 
     {
     }
@@ -99,7 +99,6 @@ export class Login implements OnInit {
     }
 
     onSignIn(){
-        debugger
         let data = this.formLogin.value as LoginModel;
         if(!data) return;
         if(!data.userName)
@@ -113,11 +112,10 @@ export class Login implements OnInit {
           return;
         }
         this.authSV.login(data)
-        .pipe(take(1))
         .subscribe((res) => {
           if(res)
           {
-            this.route.navigateByUrl("task");
+            this.router.navigateByUrl("task");
           }
         });
     }

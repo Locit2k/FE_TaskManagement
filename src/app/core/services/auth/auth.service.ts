@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, tap, map, of, switchMap } from 'rxjs';
+import { Observable, tap, map, of, switchMap, catchError } from 'rxjs';
 import { environment } from '../../../../environments/environment.development';
 import { ApiService } from '../api/api.service';
 import { CookieService } from 'ngx-cookie-service';
@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { BaseResponse } from '../../models/BaseResponse.model';
 import CryptoJS from 'crypto-js';
 import { UserModel } from '../../models/UserModel.model';
-import { LoginModel } from '../../../pages/auth/models';
+import { LoginModel, RegisterModel } from '../../../pages/auth/models';
 import { NotificationService } from '../notification/notification.service';
 @Injectable({
   providedIn: 'root'
@@ -44,7 +44,7 @@ export class AuthService {
       if(remember)
       {
         expireOn = new Date();
-        expireOn.setMinutes(expireOn.getMinutes() + 30);
+        expireOn.setDate(expireOn.getDate() + 30);
       }
       this.setCookie("tmtk",token,expireOn);
     }
@@ -56,25 +56,26 @@ export class AuthService {
   }
 
   public refreshToken() : Observable<string | null>{
-    return this.apiSV.post("auth/refreshtoken",{},{ withCredentials: true }).pipe(
-      tap((response: any) => {
-        this.setToken(response.accessToken);
-      })
-    );
+    return this.apiSV.post<BaseResponse>("auth/refreshtoken",{},{ withCredentials: true })
+    .pipe(map((res: any) => {
+      if(res && !res.isError && res.data)
+      {
+        this.setToken(res.data,true);
+        return res.data;
+      }
+      else return null;
+    }),
+    catchError((error) => {
+      console.log(error);
+      return of(null);
+    }));
   }
 
-  public getUser() : Observable<UserModel | null>{
-    let token = this.getToken();
-    if(token)
-    {
-      return this.apiSV.get<BaseResponse>("user/getuser").pipe(map((res) => {
-        return res.data as UserModel;
+  public getUser() : Observable<UserModel | null> {
+    return this.apiSV.get<BaseResponse>("user/getuser")
+      .pipe(map((res) => {
+        return res ? (res.data as UserModel) : null;
       }));
-    }
-    else
-    {
-      return of(null);
-    }
   }
 
   encryptData(data:any) {
@@ -104,23 +105,51 @@ export class AuthService {
       return of(false);
     }
     return this.apiSV.post<BaseResponse>("auth/login",data)
-    .pipe(switchMap((res) => {
+    .pipe(map((res) => {
       if(res && !res.isError && res.data)
       {
         this.setToken(res.data, data.rememberme);
         this.notiSV.notify("Đăng nhập thành công");
-        return of(true);
+        return true;
       }
       else
       {
         this.notiSV.notify(res.messageError,res.errorType);
-        return of(false);
+        return false;
       }
+    }),
+    catchError((error) => {
+      console.log(error);
+      this.notiSV.notify('Hệ thống thực thi không thành công. Vui lòng thử lại sau.', 'error');
+      return of(false);
     }));
   }
 
   public logOut(){
     this.cookieService.delete("tmtk");
     this.router.navigateByUrl("auth/login");
+  }
+
+  public register(data:RegisterModel) : Observable<boolean> {
+    if(!data) return of(false);
+    return this.apiSV.post<BaseResponse>("auth/register",data)
+    .pipe(map((res) => {
+      if(res && !res.isError && res.data)
+      {
+        this.notiSV.notify("Đăng ký thành công.");
+        this.setToken(res.data);
+        return true;
+      }
+      else
+      {
+        this.notiSV.notify(res.messageError,res.errorType)
+        return false;
+      }
+    }),
+    catchError((error) => {
+      console.log(error);
+      this.notiSV.notify('Hệ thống thực thi không thành công. Vui lòng thử lại sau.', 'error');
+      return of(false);
+    }));
   }
 }

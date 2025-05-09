@@ -8,6 +8,8 @@ import { LayoutService } from '../service/layout.service';
 import { ButtonModule } from 'primeng/button';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { NotificationService } from '../../core/services/notification/notification.service';
+import { UserModel } from '../../core/models/UserModel.model';
+import { AuthService } from '../../core/services/auth/auth.service';
 @Component({
     selector: 'app-topbar',
     standalone: true,
@@ -36,7 +38,7 @@ import { NotificationService } from '../../core/services/notification/notificati
                         />
                     </g>
                 </svg>
-                <span>TASKMANAGER UI</span>
+                <span>TASK MANAGER</span>
             </a>
         </div>
 
@@ -82,7 +84,7 @@ import { NotificationService } from '../../core/services/notification/notificati
                     <p-splitbutton [model]="splitItems" text severity="contrast">
                         <ng-template #content>
                             <i class="pi pi-user"></i>
-                            <span>TTLoc</span>
+                            <span *ngIf="userLogin">{{userLogin.fullName}}</span>
                         </ng-template>    
                     </p-splitbutton>
                 </div>
@@ -105,13 +107,23 @@ export class AppTopbar {
             }
         },
     ];
-    constructor(public layoutService: LayoutService, private notiSV:NotificationService) {}
+    userLogin:UserModel | null = null;
+    constructor(public layoutService: LayoutService, private authSV:AuthService) 
+    {
+        this.authSV.getUser()
+        .subscribe((res) => {
+            if(res)
+            {
+                this.userLogin = res;
+            }
+        });
+    }
 
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
     }
 
     logout(){
-        this.notiSV.notify("Đăng xuất")
+        this.authSV.logOut();
     }
 }
