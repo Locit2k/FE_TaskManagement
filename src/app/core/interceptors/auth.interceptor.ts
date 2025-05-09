@@ -17,7 +17,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       ...(token ? { Authorization: `Bearer ${token}` } : {}) 
     }
   });
-
   return next(newReq).pipe(
     catchError((error) => {
       debugger

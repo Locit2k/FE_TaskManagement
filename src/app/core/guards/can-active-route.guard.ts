@@ -6,14 +6,15 @@ import { map } from 'rxjs';
 export const canActiveRouteGuard: CanActivateFn = (route, state) => {
   const authSV = inject(AuthService);
   const router = inject(Router);
-  let token = authSV.getToken();
-  if(token)
-  {
-    return true;
-  }
-  else
-  {
-    router.navigate(["auth/login"]);
-    return false;
-  }
+  return authSV.getUser().pipe(map((res) => {
+    if(res)
+    {
+      return true;
+    }
+    else
+    {
+      router.navigate(["auth/login"]);
+      return false;
+    }
+  }))
 };

@@ -37,16 +37,22 @@ export class AuthService {
     return value;
   }
 
-  private setToken(token:string,remember:boolean = false){
-    if(token)
+  private setUser(data:any,remember:boolean = false){
+    if(data)
     {
-      let expireOn = undefined;
+      let userName = data.userName;
+      let token = data.token;
+      let userExpireOn = undefined;
+      let tokenExpireOn = undefined;
       if(remember)
       {
-        expireOn = new Date();
-        expireOn.setDate(expireOn.getDate() + 30);
+        userExpireOn = new Date();
+        tokenExpireOn = new Date();
+        userExpireOn.setDate(userExpireOn.getDate() + 30);
+        tokenExpireOn.setMinutes(tokenExpireOn.getMinutes() + 5);
       }
-      this.setCookie("tmtk",token,expireOn);
+      this.setCookie("tmus",userName,userExpireOn);
+      this.setCookie("tmtk",token,tokenExpireOn);
     }
   }
 
@@ -55,27 +61,38 @@ export class AuthService {
     return token;
   }
 
-  public refreshToken() : Observable<string | null>{
-    return this.apiSV.post<BaseResponse>("auth/refreshtoken",{},{ withCredentials: true })
-    .pipe(map((res: any) => {
-      if(res && !res.isError && res.data)
-      {
-        this.setToken(res.data,true);
-        return res.data;
-      }
-      else return null;
-    }),
-    catchError((error) => {
-      console.log(error);
-      return of(null);
-    }));
+  public refreshToken() : Observable<string | null> {
+    let userName = this.getCookie("tmus");
+    if(userName)
+    {
+      return this.apiSV.post<BaseResponse>("auth/refreshtoken",{userName: userName})
+      .pipe(map((res: any) => {
+        if(res && !res.isError && res.data)
+        {
+          this.setUser(res.data,true);
+          return res.data.token;
+        }
+        else return null;
+      }),
+      catchError((error) => {
+        console.log(error);
+        return of(null);
+      }));
+    }
+    else return of(null);
   }
 
   public getUser() : Observable<UserModel | null> {
     return this.apiSV.get<BaseResponse>("user/getuser")
       .pipe(map((res) => {
         return res ? (res.data as UserModel) : null;
-      }));
+      }),
+      catchError((error) => 
+      {
+        console.log(error);
+        return of(null);
+      }
+    ));
   }
 
   encryptData(data:any) {
@@ -108,7 +125,7 @@ export class AuthService {
     .pipe(map((res) => {
       if(res && !res.isError && res.data)
       {
-        this.setToken(res.data, data.rememberme);
+        this.setUser(res.data, data.rememberme);
         this.notiSV.notify("Đăng nhập thành công");
         return true;
       }
@@ -127,6 +144,7 @@ export class AuthService {
 
   public logOut(){
     this.cookieService.delete("tmtk");
+    this.cookieService.delete("tmus");
     this.router.navigateByUrl("auth/login");
   }
 
@@ -136,8 +154,8 @@ export class AuthService {
     .pipe(map((res) => {
       if(res && !res.isError && res.data)
       {
+        this.setUser(res.data);
         this.notiSV.notify("Đăng ký thành công.");
-        this.setToken(res.data);
         return true;
       }
       else
